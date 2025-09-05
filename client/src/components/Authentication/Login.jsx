@@ -14,10 +14,8 @@ import { useNavigate } from "react-router-dom";
 const Login = () => {
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const toast = useToast();
   const navigate = useNavigate();
-
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
@@ -29,11 +27,23 @@ const Login = () => {
 
   const submitHandler = async () => {
     setLoading(true);
-
-    // If email or password is missing
     if (!credentials.email || !credentials.password) {
       toast({
-        title: "Please Fill all the Feilds",
+        title: "Please Fill all the Fields",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-right",
+        variant: "left-accent",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const specialCharPattern = /[!@#$%^&*(),.?":{}|<>]/;
+    if (!specialCharPattern.test(credentials.password)) {
+      toast({
+        title: "Password must contain at least one special character (!@#$%^&* etc.)",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -56,7 +66,6 @@ const Login = () => {
         }),
       });
       const data = await response.json();
-
       toast({
         title: data.message,
         status: !data.success ? "error" : "success",
@@ -96,7 +105,7 @@ const Login = () => {
             name="email"
             value={credentials.email}
             placeholder="Enter Your Email"
-            onChange={(e) => handleCredentials(e)}
+            onChange={handleCredentials}
           />
         </FormControl>
       </Stack>
@@ -115,7 +124,7 @@ const Login = () => {
               name="password"
               value={credentials.password}
               placeholder="Password"
-              onChange={(e) => handleCredentials(e)}
+              onChange={handleCredentials}
             />
           </InputGroup>
         </FormControl>

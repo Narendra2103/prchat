@@ -8,6 +8,7 @@ import {
   InputRightElement,
   Stack,
   useToast,
+  Image,
 } from "@chakra-ui/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,9 +33,8 @@ const Signup = () => {
 
   const handleUploadPicture = async (e) => {
     setLoading(true);
-
-    // If no image selected
-    if (e.target.files[0] === undefined) {
+    if (!e.target.files[0]) {
+      setLoading(false);
       return toast({
         title: "Please select an image",
         status: "warning",
@@ -45,40 +45,32 @@ const Signup = () => {
       });
     }
 
-    // Check if the type of image is jpeg or png
     if (
       e.target.files[0].type === "image/jpeg" ||
       e.target.files[0].type === "image/png"
     ) {
       try {
         const data = new FormData();
-        data.append("file", e.target.files[0]); // Contains the file
-        data.append("upload_preset", "chat-app"); // Upload preset in Cloudinary
-        data.append("cloud_name", "devcvus7v"); // Cloud name in Cloudinary
+        data.append("file", e.target.files[0]);
+        data.append("upload_preset", "chat-app");
+        data.append("cloud_name", "devcvus7v");
 
         const response = await fetch(
           "https://api.cloudinary.com/v1_1/devcvus7v/image/upload",
-          {
-            method: "POST",
-            body: data,
-          }
+          { method: "POST", body: data }
         );
         const json = await response.json();
 
-        setCredentials({
-          ...credentials,
-          [e.target.name]: json.secure_url.toString(),
-        });
+        setCredentials({ ...credentials, pic: json.secure_url.toString() });
         setLoading(false);
       } catch (error) {
         console.log(error);
         setLoading(false);
       }
     } else {
-      console.log("Hello");
       setLoading(false);
       return toast({
-        title: "Please select an image",
+        title: "Please select a JPEG or PNG image",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -91,7 +83,6 @@ const Signup = () => {
   const submitHandler = async () => {
     setLoading(true);
 
-    // If anything is missing
     if (
       !credentials.name ||
       !credentials.email ||
@@ -100,7 +91,7 @@ const Signup = () => {
     ) {
       setLoading(false);
       return toast({
-        title: "Please Fill all the Feilds",
+        title: "Please fill all the fields",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -109,11 +100,10 @@ const Signup = () => {
       });
     }
 
-    // If password and confirm password doesn't match
     if (credentials.password !== credentials.confirmPassword) {
       setLoading(false);
       return toast({
-        title: "Passwords Do Not Match",
+        title: "Passwords do not match",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -122,13 +112,25 @@ const Signup = () => {
       });
     }
 
-    // Now submit the data
+    const specialCharPattern = /[!@#$%^&*(),.?":{}|<>]/g;
+    const specialCharCount = (credentials.password.match(specialCharPattern) || []).length;
+
+    if (credentials.password.length < 6 || specialCharCount < 2) {
+      setLoading(false);
+      return toast({
+        title: "Password must be at least 6 characters and contain at least 2 special characters (!@#$%^&*)",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+        position: "bottom-right",
+        variant: "left-accent",
+      });
+    }
+
     try {
       const response = await fetch("/api/user", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: credentials.name,
           email: credentials.email,
@@ -148,9 +150,16 @@ const Signup = () => {
       });
 
       if (data.success) {
-        localStorage.setItem("userInfo", JSON.stringify(data));
         setLoading(false);
-        navigate("/chats");
+        toast({
+          title: "Start your login",
+          status: "info",
+          duration: 5000,
+          isClosable: true,
+          position: "bottom-right",
+          variant: "solid",
+        });
+        navigate("/login");
       } else {
         setLoading(false);
       }
@@ -171,33 +180,33 @@ const Signup = () => {
     <Stack spacing="6">
       <Stack spacing="5">
         <FormControl isRequired id="name">
-          <FormLabel htmlFor="name">Name</FormLabel>
+          <FormLabel>Name</FormLabel>
           <Input
             type="text"
             name="name"
             value={credentials.name}
             placeholder="Enter Your Name"
-            onChange={(e) => handleCredentials(e)}
+            onChange={handleCredentials}
           />
         </FormControl>
       </Stack>
 
       <Stack spacing="5">
         <FormControl isRequired id="email">
-          <FormLabel htmlFor="email">Email</FormLabel>
+          <FormLabel>Email</FormLabel>
           <Input
             type="email"
             name="email"
             value={credentials.email}
             placeholder="Enter Your Email"
-            onChange={(e) => handleCredentials(e)}
+            onChange={handleCredentials}
           />
         </FormControl>
       </Stack>
 
       <Stack spacing="5">
         <FormControl isRequired id="password">
-          <FormLabel htmlFor="password">Password</FormLabel>
+          <FormLabel>Password</FormLabel>
           <InputGroup>
             <InputRightElement w="4.5rem">
               <Button h="1.75rem" size="sm" onClick={() => setShow(!show)}>
@@ -209,7 +218,7 @@ const Signup = () => {
               name="password"
               value={credentials.password}
               placeholder="Password"
-              onChange={(e) => handleCredentials(e)}
+              onChange={handleCredentials}
             />
           </InputGroup>
         </FormControl>
@@ -217,7 +226,7 @@ const Signup = () => {
 
       <Stack spacing="5">
         <FormControl isRequired id="confirmPassword">
-          <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
+          <FormLabel>Confirm Password</FormLabel>
           <InputGroup>
             <InputRightElement w="4.5rem">
               <Button h="1.75rem" size="sm" onClick={() => setShow(!show)}>
@@ -229,7 +238,7 @@ const Signup = () => {
               name="confirmPassword"
               value={credentials.confirmPassword}
               placeholder="Confirm Password"
-              onChange={(e) => handleCredentials(e)}
+              onChange={handleCredentials}
             />
           </InputGroup>
         </FormControl>
@@ -237,19 +246,15 @@ const Signup = () => {
 
       <Stack spacing="5">
         <FormControl id="pic">
-          <FormLabel htmlFor="pic">Upload your Picture</FormLabel>
-
+          <FormLabel>Upload your Picture</FormLabel>
           <InputGroup>
             <InputLeftElement pointerEvents="none">
               <i className="fas fa-folder-open" />
             </InputLeftElement>
-
             <Input
               type="file"
               name="pic"
               accept="image/*"
-              isInvalid={true}
-              errorBorderColor="#eaafc8"
               sx={{
                 "::file-selector-button": {
                   height: 10,
@@ -260,9 +265,19 @@ const Signup = () => {
                   fontWeight: "bold",
                 },
               }}
-              onChange={(e) => handleUploadPicture(e)}
+              onChange={handleUploadPicture}
             />
           </InputGroup>
+          {credentials.pic && (
+            <Image
+              src={credentials.pic}
+              alt="Uploaded"
+              boxSize="100px"
+              objectFit="cover"
+              mt={3}
+              borderRadius="full"
+            />
+          )}
         </FormControl>
       </Stack>
 
@@ -270,7 +285,7 @@ const Signup = () => {
         colorScheme="blue"
         width="100%"
         style={{ marginTop: 15 }}
-        onClick={() => submitHandler()}
+        onClick={submitHandler}
         isLoading={loading}
       >
         Sign Up
